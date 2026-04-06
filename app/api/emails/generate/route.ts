@@ -9,6 +9,7 @@ import { getRequestContext } from "@cloudflare/next-on-pages"
 import { getUserId } from "@/lib/apiKey"
 import { getUserRole } from "@/lib/auth"
 import { ROLES } from "@/lib/permissions"
+import { getEmailDomainsOrDefault } from "@/lib/email-domains"
 
 export const runtime = "edge"
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     const domainString = await env.SITE_CONFIG.get("EMAIL_DOMAINS")
-    const domains = domainString ? domainString.split(',') : ["moemail.app"]
+    const domains = getEmailDomainsOrDefault(domainString)
 
     if (!domains || !domains.includes(domain)) {
       return NextResponse.json(
@@ -102,4 +103,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
+}

@@ -4,6 +4,7 @@ import { create } from "zustand"
 import { Role, ROLES } from "@/lib/permissions"
 import { EMAIL_CONFIG } from "@/config"
 import { useEffect } from "react"
+import { parseEmailDomains, stringifyEmailDomains } from "@/lib/email-domains"
 
 interface Config {
   defaultRole: Exclude<Role, typeof ROLES.EMPEROR>
@@ -27,14 +28,15 @@ const useConfigStore = create<ConfigStore>((set) => ({
   fetch: async () => {
     try {
       set({ loading: true, error: null })
-      const res = await fetch("/api/config")
+      const res = await fetch("/api/config", { cache: "no-store" })
       if (!res.ok) throw new Error("获取配置失败")
       const data = await res.json() as Config
+      const emailDomains = stringifyEmailDomains(data.emailDomains)
       set({
         config: {
           defaultRole: data.defaultRole || ROLES.CIVILIAN,
-          emailDomains: data.emailDomains,
-          emailDomainsArray: data.emailDomains.split(','),
+          emailDomains,
+          emailDomainsArray: parseEmailDomains(emailDomains),
           adminContact: data.adminContact || "",
           maxEmails: Number(data.maxEmails) || EMAIL_CONFIG.MAX_ACTIVE_EMAILS
         },
@@ -59,4 +61,4 @@ export function useConfig() {
   }, [store.config, store.loading])
 
   return store
-} 
+}

@@ -20,7 +20,7 @@ interface CreateDialogProps {
 }
 
 export function CreateDialog({ onEmailCreated }: CreateDialogProps) {
-  const { config } = useConfig()
+  const { config, fetch: refreshConfig } = useConfig()
   const t = useTranslations("emails.create")
   const tList = useTranslations("emails.list")
   const tCommon = useTranslations("common.actions")
@@ -93,6 +93,12 @@ export function CreateDialog({ onEmailCreated }: CreateDialogProps) {
       setCurrentDomain(config?.emailDomainsArray[0] ?? "")
     }
   }, [config])
+
+  useEffect(() => {
+    if (open) {
+      void refreshConfig()
+    }
+  }, [open, refreshConfig])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -185,4 +191,4 @@ export function CreateDialog({ onEmailCreated }: CreateDialogProps) {
       </DialogContent>
     </Dialog>
   )
-} 
+}

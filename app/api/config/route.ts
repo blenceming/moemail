@@ -2,8 +2,10 @@ import { PERMISSIONS, Role, ROLES } from "@/lib/permissions"
 import { getRequestContext } from "@cloudflare/next-on-pages"
 import { EMAIL_CONFIG } from "@/config"
 import { checkPermission } from "@/lib/auth"
+import { stringifyEmailDomains } from "@/lib/email-domains"
 
 export const runtime = "edge"
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   const env = getRequestContext().env
@@ -27,17 +29,24 @@ export async function GET() {
     env.SITE_CONFIG.get("TURNSTILE_SECRET_KEY")
   ])
 
-  return Response.json({
-    defaultRole: defaultRole || ROLES.CIVILIAN,
-    emailDomains: emailDomains || "moemail.app",
-    adminContact: adminContact || "",
-    maxEmails: maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString(),
-    turnstile: canManageConfig ? {
-      enabled: turnstileEnabled === "true",
-      siteKey: turnstileSiteKey || "",
-      secretKey: turnstileSecretKey || "",
-    } : undefined
-  })
+  return Response.json(
+    {
+      defaultRole: defaultRole || ROLES.CIVILIAN,
+      emailDomains: stringifyEmailDomains(emailDomains),
+      adminContact: adminContact || "",
+      maxEmails: maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString(),
+      turnstile: canManageConfig ? {
+        enabled: turnstileEnabled === "true",
+        siteKey: turnstileSiteKey || "",
+        secretKey: turnstileSecretKey || "",
+      } : undefined
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store"
+      }
+    }
+  )
 }
 
 export async function POST(request: Request) {
@@ -71,6 +80,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "无效的角色" }, { status: 400 })
   }
 
+  const normalizedEmailDomains = stringifyEmailDomains(emailDomains)
+
   const turnstileConfig = turnstile ?? {
     enabled: false,
     siteKey: "",
@@ -84,7 +95,7 @@ export async function POST(request: Request) {
   const env = getRequestContext().env
   await Promise.all([
     env.SITE_CONFIG.put("DEFAULT_ROLE", defaultRole),
-    env.SITE_CONFIG.put("EMAIL_DOMAINS", emailDomains),
+    env.SITE_CONFIG.put("EMAIL_DOMAINS", normalizedEmailDomains),
     env.SITE_CONFIG.put("ADMIN_CONTACT", adminContact),
     env.SITE_CONFIG.put("MAX_EMAILS", maxEmails),
     env.SITE_CONFIG.put("TURNSTILE_ENABLED", turnstileConfig.enabled.toString()),

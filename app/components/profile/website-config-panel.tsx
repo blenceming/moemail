@@ -18,10 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { EMAIL_CONFIG } from "@/config"
+import { useConfig } from "@/hooks/use-config"
 
 export function WebsiteConfigPanel() {
   const t = useTranslations("profile.website")
   const tCard = useTranslations("profile.card")
+  const { fetch: refreshConfig } = useConfig()
   const [defaultRole, setDefaultRole] = useState<string>("")
   const [emailDomains, setEmailDomains] = useState<string>("")
   const [adminContact, setAdminContact] = useState<string>("")
@@ -39,7 +41,7 @@ export function WebsiteConfigPanel() {
   }, [])
 
   const fetchConfig = async () => {
-    const res = await fetch("/api/config")
+    const res = await fetch("/api/config", { cache: "no-store" })
     if (res.ok) {
       const data = await res.json() as { 
         defaultRole: Exclude<Role, typeof ROLES.EMPEROR>,
@@ -87,6 +89,7 @@ export function WebsiteConfigPanel() {
         title: t("saveSuccess"),
         description: t("saveSuccess"),
       })
+      await Promise.all([refreshConfig(), fetchConfig()])
     } catch (error) {
       toast({
         title: t("saveFailed"),
